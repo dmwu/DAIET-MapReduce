@@ -14,15 +14,20 @@ Experimental results show that our approach achieves around 88\% data reduction 
   **In-Network Computation is a ~~Dumb~~ Idea Whose Time Has Come** <br>
   In Proceedings of the 16th ACM Workshop on Hot Topics in Networks. ACM, 2017.*
 
+### Changes
+The main changes from the original [simpleMR](https://github.com/wangchangli/simplemr) are:
+* Communication Layer (TCP to UDP)
+* Message Serialization 
+* Sorting intermediate results
 
-###How to build
+### How to build
 ```bash
 cd simplemr
 mvn package
 chmod +x dist/bin/*
 cd ..
 ```
-####How to run
+### How to run
 See Detailed Steps: [https://github.com/AmedeoSapio/DAIET](https://github.com/AmedeoSapio/DAIET)
 
 
