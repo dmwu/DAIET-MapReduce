@@ -194,7 +194,6 @@ public class DFSMetaData {
         DFSNode[] allNodes = new DFSNode[dataNodes.size()];
         dataNodes.values().toArray(allNodes);
         Arrays.sort(allNodes, new Comparator<DFSNode>() {
-            @Override
             public int compare(DFSNode dfsNode, DFSNode dfsNode2) {
                 return dfsNode.getChunkNumber() - dfsNode2.getChunkNumber();
             }

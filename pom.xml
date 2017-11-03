@@ -20,6 +20,8 @@
     <properties>
         <project.root>${basedir}</project.root>
         <jetty.version>8.1.13.v20130916</jetty.version>
+		<maven.compiler.source>1.7</maven.compiler.source>
+		<maven.compiler.target>1.7</maven.compiler.target>
     </properties>
 
     <reporting>
@@ -102,5 +104,10 @@
             <artifactId>httpmime</artifactId>
             <version>4.3.1</version>
         </dependency>
+        <dependency>
+		    <groupId>com.google.guava</groupId>
+		    <artifactId>guava</artifactId>
+		    <version>20.0</version>
+		</dependency>
     </dependencies>
 </project>

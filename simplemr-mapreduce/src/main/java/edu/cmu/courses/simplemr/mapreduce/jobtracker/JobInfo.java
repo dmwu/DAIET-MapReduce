@@ -12,6 +12,9 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Include all the information about Task Tracker.
  *
@@ -21,12 +24,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class JobInfo implements Comparable<JobInfo>{
     private static AtomicInteger maxId = new AtomicInteger(0);
-
+    public static long startTime = 0;
+    public static long runTime = 0;
     private int id;
     private JobConfig config;
     private JobStatus status;
     private Map<Integer, MapperTask> mapperTasks;
     private Map<Integer, ReducerTask> reducerTasks;
+    private static Logger LOG = LoggerFactory.getLogger(JobInfo.class);
 
     public JobInfo(JobConfig jobConfig){
         this.id = maxId.getAndIncrement();
@@ -34,8 +39,12 @@ public class JobInfo implements Comparable<JobInfo>{
         this.status = JobStatus.INITIALIZING;
         this.mapperTasks = new TreeMap<Integer, MapperTask>();
         this.reducerTasks = new TreeMap<Integer, ReducerTask>();
+        this.startTime = System.currentTimeMillis();
+        this.runTime = 0;
     }
-
+    public static int getMaxID(){
+    	return maxId.get();
+    }
     public List<MapperTask> getMapperTasks(){
         return new ArrayList<MapperTask>(mapperTasks.values());
     }
@@ -49,6 +58,10 @@ public class JobInfo implements Comparable<JobInfo>{
         if(task != null){
             task.setStatus(status);
         }
+//        if(status==TaskStatus.SUCCEED){
+//        	runTime  = (System.currentTimeMillis() - startTime);
+//        	LOG.info("Job ID: "+this.id +" finished in (ms) "+runTime);
+//        }
     }
 
     public Task getTask(int taskId){
@@ -65,6 +78,13 @@ public class JobInfo implements Comparable<JobInfo>{
 
     public void setJobStatus(JobStatus status){
         this.status = status;
+        if(status==JobStatus.FAILED)
+        	LOG.info("Job ID: "+this.id +" failed ");
+        
+        if(status==JobStatus.SUCCEED){
+        	runTime  = (System.currentTimeMillis() - startTime);
+        	LOG.info("Job ID: "+this.id +" finished in (ms) "+runTime);
+        }
     }
 
     public void addMapperTask(MapperTask mapperTask){
@@ -96,6 +116,7 @@ public class JobInfo implements Comparable<JobInfo>{
         sb.append(" || ");
         sb.append(describeReducerTasks());
         sb.append(")");
+        sb.append(", start time to now (ms)= "+(System.currentTimeMillis()-startTime)+", totalTime = "+runTime);
         return sb.toString();
     }
 
@@ -175,7 +196,7 @@ public class JobInfo implements Comparable<JobInfo>{
         return status;
     }
 
-    @Override
+    
     public int compareTo(JobInfo o) {
         return id - o.getId();
     }

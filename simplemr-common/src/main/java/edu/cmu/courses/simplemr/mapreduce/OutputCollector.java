@@ -11,12 +11,14 @@ import java.util.*;
  */
 
 public class OutputCollector {
+	
     private PriorityQueue<Pair<String, String>> collection;
     private Set<String> keys;
 
     public OutputCollector() {
-        collection = new PriorityQueue<Pair<String, String>>(10, new Comparator<Pair<String, String>>() {
-            @Override
+    	//collection = new PriorityQueue<Pair<String, String>>(10, new Comparator<Pair<String, String>>() { //ibrahim: change queue initial capacity
+    	//collection = new PriorityQueue<Pair<String, String>>(1000, new Comparator<Pair<String, String>>() {
+        collection = new PriorityQueue<Pair<String, String>>(1000000, new Comparator<Pair<String, String>>() {
             public int compare(Pair<String, String> o1, Pair<String, String> o2) {
                 if(o1.getKey().compareTo(o2.getKey()) == 0)
                     return o1.getValue().compareTo(o2.getValue());
@@ -48,6 +50,51 @@ public class OutputCollector {
                 List<String> values = new ArrayList<String>();
                 values.add(pair.getValue());
                 map.put(pair.getKey(), values);
+            }
+        }
+        return map;
+    }
+    
+    public HashMap<String, List<Integer>> getMapOutput(int combinerFlag) {
+    	
+        HashMap<String, List<Integer>> map = new HashMap<String, List<Integer>>();
+        List<Integer> previousValue = null;
+        Integer newValue = null;
+        int pairValue = 0;
+        
+        for(Pair<String, String> pair : collection){
+        	
+        	pairValue = Integer.parseInt(pair.getValue());
+        	
+            if(map.containsKey(pair.getKey())){
+            	
+            	previousValue = map.get(pair.getKey());
+            	
+                switch (combinerFlag) {
+                	case 1: // Sum
+                		newValue = new Integer(previousValue.get(0).intValue()+pairValue);
+                		previousValue.set(0, newValue);
+                		break;
+                	case 2: // Max
+                		
+                		if (pairValue>previousValue.get(0).intValue())
+                			previousValue.set(0, new Integer(pairValue));
+                		break;
+                	case 3: // Min
+                		
+                		if (pairValue<previousValue.get(0).intValue())
+                			previousValue.set(0, new Integer(pairValue));
+                		break;
+                	default:
+                		previousValue.add(pairValue);
+                		break;
+                }
+                
+            } else {
+            	
+            	previousValue = new ArrayList<Integer>();
+            	previousValue.add(pairValue);
+                map.put(pair.getKey(), previousValue);
             }
         }
         return map;

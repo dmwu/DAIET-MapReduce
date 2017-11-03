@@ -33,10 +33,14 @@ public class Job {
         jobConfig.validate();
         try {
             Registry registry = LocateRegistry.getRegistry(registryHost, registryPort);
+            LOG.info("Registry is created!");
             jobClient = (JobClientService) registry.lookup(JobClientService.class.getCanonicalName());
+            LOG.info("Job Client is found!");
             Pair<String, Integer> fileServerInfo = jobClient.getFileServerInfo();
             Utils.postClassFile(fileServerInfo.getKey(), fileServerInfo.getValue(), mapReduceClass);
+            LOG.info("Class file is posted!");
             jobClient.submitJob(jobConfig);
+            LOG.info("Job is submitted!");
         } catch (RemoteException e) {
             LOG.error("failed to run mapreduce job", e);
         } catch (NotBoundException e) {

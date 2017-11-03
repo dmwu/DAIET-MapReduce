@@ -81,7 +81,6 @@ public class DFSNode implements Serializable, Comparable<DFSNode> {
         }
     }
 
-    @Override
     public int compareTo(DFSNode dfsNode) {
         return getServiceName().hashCode() - dfsNode.getServiceName().hashCode();
     }

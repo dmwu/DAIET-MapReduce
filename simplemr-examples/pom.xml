@@ -65,6 +65,12 @@
             <artifactId>simplemr-common</artifactId>
             <version>1.0</version>
         </dependency>
+        <dependency>
+            <groupId>edu.cmu.courses</groupId>
+            <artifactId>simplemr-mapreduce</artifactId>
+            <version>1.0</version>
+        </dependency>
+        
     </dependencies>
 
 </project>

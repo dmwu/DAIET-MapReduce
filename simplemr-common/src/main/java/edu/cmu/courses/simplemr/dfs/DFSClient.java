@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.net.InetAddress;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -62,22 +63,32 @@ public class DFSClient {
     public DFSFile getFile(String fileName)
             throws RemoteException{
         File file = new File(fileName);
-        return masterService.getFile(file.getName());
+        LOG.info("Getting File: "+fileName);
+        DFSFile f= masterService.getFile(file.getName());
+        
+        String hostName = "";
+        try{
+        	hostName = InetAddress.getLocalHost().getHostName();
+        }catch(Exception ex){}
+        
+        LOG.info(hostName+": Getting File: "+fileName+" , done successfully!");
+        return f;
     }
 
 
 
     public byte[] readChunk(DFSChunk chunk, long offset, int size){
         DFSNode[] nodes = chunk.getNodes();
+        Exception e = null;
         for(DFSNode node : nodes){
-            Exception e;
+            
             try{
                 return readChunk(node, chunk.getId(), offset, size);
             } catch (Exception exp){
                 e = exp;
             }
         }
-        LOG.error("can't read chunk data from any replica");
+        LOG.error("can't read chunk data from any replica", e);
         return null;
     }
 
@@ -160,7 +171,8 @@ public class DFSClient {
         DFSFile file = createFile(fileName, replicas);
         long offset = 0;
         int count = 0;
-        StringBuffer sb = new StringBuffer();
+//        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         while(true){
             String line = reader.readLine();
             count++;

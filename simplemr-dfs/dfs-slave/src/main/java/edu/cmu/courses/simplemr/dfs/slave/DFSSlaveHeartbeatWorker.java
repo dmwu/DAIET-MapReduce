@@ -31,7 +31,6 @@ public class DFSSlaveHeartbeatWorker implements Runnable {
         this.slave = slave;
     }
 
-    @Override
     public void run() {
         try {
             DFSMasterService masterService = (DFSMasterService)

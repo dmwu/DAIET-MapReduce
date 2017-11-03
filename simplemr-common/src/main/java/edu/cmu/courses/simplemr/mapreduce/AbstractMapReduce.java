@@ -43,6 +43,12 @@ public abstract class AbstractMapReduce implements MapReduce {
 
     @Parameter(names = {"-l", "--line-count"}, description = "the count of lines per file chunk in dfs")
     protected int lineCount = DFSConstants.DEFAULT_LINE_COUNT;
+    //ibrahim
+    @Parameter(names = {"-c", "--combiner"}, description = "the combiner to use: 0 (none), 1 (sum), 2 (max), 3 (min)")
+    protected int combiner = DFSConstants.DEFAULT_COMBINER;
+    
+    @Parameter(names = {"-nr", "--netreducer"}, description = "Enables netreducer")
+    private boolean netreducer = false;
 
     @Parameter(names = {"-h", "--help"}, help = true)
     private boolean help = false;
@@ -61,6 +67,8 @@ public abstract class AbstractMapReduce implements MapReduce {
         jobConfig.setMaxAttemptCount(maxAttemptCount);
         jobConfig.setOutputFileReplica(replicas);
         jobConfig.setOutputFileBlockSize(lineCount);
+        jobConfig.setCombiner(combiner);//ibrahim
+        jobConfig.setNetreducer(netreducer);
         jobConfig.setClassName(this.getClass().getName());
         jobConfig.validate();
         return jobConfig;

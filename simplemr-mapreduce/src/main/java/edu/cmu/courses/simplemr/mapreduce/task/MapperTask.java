@@ -18,7 +18,8 @@ public class MapperTask extends Task {
     private int reducerAmount;
     private String fileServerHost;
     private int fileServerPort;
-
+    private int combiner;
+    
     public MapperTask(int jobId, FileBlock inputFileBlock, int reducerAmount) {
         super(jobId, TaskType.MAPPER);
         this.inputFileBlock = inputFileBlock;
@@ -32,7 +33,13 @@ public class MapperTask extends Task {
     public int getReducerAmount(){
         return reducerAmount;
     }
-
+    //ibrahim
+    public int getCombiner(){
+        return combiner;
+    }
+    public void setCombiner(int combiner){
+    	this.combiner = combiner;
+    }
     public String getFileServerHost() {
         return fileServerHost;
     }

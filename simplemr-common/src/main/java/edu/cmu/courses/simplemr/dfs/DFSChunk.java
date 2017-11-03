@@ -59,8 +59,6 @@ public class DFSChunk implements Serializable, Comparable<DFSChunk> {
         nodes.toArray(nodesArray);
         return nodesArray;
     }
-
-    @Override
     public int compareTo(DFSChunk dfsChunk) {
         if(id == dfsChunk.getId()){
             if(offset > dfsChunk.getOffset()){

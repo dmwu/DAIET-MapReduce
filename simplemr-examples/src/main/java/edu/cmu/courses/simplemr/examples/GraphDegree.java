@@ -20,7 +20,7 @@ import java.util.Iterator;
  */
 
 public class GraphDegree extends AbstractMapReduce {
-    @Override
+
     public void map(String key, String value, OutputCollector collector) {
         String[] nodes = value.split("\\s+");
         nodes[0] = String.format("%010d", Integer.parseInt(nodes[0]));
@@ -29,7 +29,6 @@ public class GraphDegree extends AbstractMapReduce {
         collector.collect(nodes[1], "i");
     }
 
-    @Override
     public void reduce(String key, Iterator<String> values, OutputCollector collector) {
         int outCount = 0;
         int inCount = 0;

@@ -24,7 +24,6 @@ public class DFSFileSplitter implements FileSplitter {
         dfsClient.connect();
     }
 
-    @Override
     public List<FileBlock> split(String file, int number) throws Exception {
         List<FileBlock> blocks = new ArrayList<FileBlock>();
         long[] offsets = dfsClient.linesOffset(file);

@@ -77,30 +77,44 @@ public class JobTracker {
         jobs = new ConcurrentHashMap<Integer, JobInfo>();
         mapperTasksQueue = new PriorityBlockingQueue<MapperTask>();
         periodicalChecker = Executors.newScheduledThreadPool(Constants.DEFAULT_SCHEDULED_THREAD_POOL_SIZE);
+        LOG.info("periodicalChecker.size = "+Constants.DEFAULT_SCHEDULED_THREAD_POOL_SIZE);
+        //ibrahim: changes to thread pool 
         threadPool = Executors.newFixedThreadPool(threadPoolSize);
+//        threadPool = Executors.newCachedThreadPool();
+        LOG.info("threadPool.size = "+threadPoolSize);
     }
 
     public void start()
             throws Exception {
+    	LOG.info("Doing the Setup: ");
         bindService();
+        LOG.info("Doing the Setup: bindService is done ...");
         new FileServer(fileServerPort, tempDir).start();
+        LOG.info("Doing the Setup: FileServer is started ...");
         periodicalChecker.scheduleAtFixedRate(new JobTrackerChecker(this), 0, checkPeriod, TimeUnit.MILLISECONDS);
+        LOG.info("Doing the Setup: ScheduleSetup is done ...");
         startScheduler();
+        LOG.info("Doing the Setup: Scheduler is started ...");
     }
 
     public void submitJob(JobConfig jobConfig) {
         jobConfig.validate();
         JobInfo job = new JobInfo(jobConfig);
+        LOG.info("Starting job: "+job.getId());
         jobs.put(job.getId(), job);
         threadPool.execute(new JobTrackerWorker(this, job.getId()));
+        LOG.info("Pushing job into threadpool queue: "+job.getId());
     }
 
     public void startJob(int jobId)
             throws Exception{
         JobInfo job = jobs.get(jobId);
         if(job != null){
+        	LOG.info("creating mappers: "+job.getId());
             generateMapperTasks(job);
+            LOG.info("creating reducers: "+job.getId());
             generateReducerTasks(job);
+            LOG.info("dispactch mappers: "+job.getId());
             dispatchMapperTasks(job);
         }
     }
@@ -117,9 +131,13 @@ public class JobTracker {
             try {
                 TaskTrackerInfo taskTracker = taskTackers.get(task.getTaskTrackerName());
                 Registry registry = LocateRegistry.getRegistry(taskTracker.getHost(), taskTracker.getRegistryPort());
+                LOG.info("Registry is created!");
                 TaskTrackerService taskTrackerService = (TaskTrackerService)registry.lookup(task.getTaskTrackerName());
+                LOG.info("taskTrackerService is found!");
                 taskTrackerService.runMapperTask(task);
+                LOG.info("task is submitted!");
             } catch (Exception e) {
+            	LOG.info("dispatchMapperTask exception: "+e.getMessage());
                 taskTrackerFailed(task.getTaskTrackerName());
             }
         }
@@ -261,6 +279,7 @@ public class JobTracker {
     private void startScheduler(){
         scheduler = new Thread(new JobTrackerScheduler(this, threadPoolSize));
         scheduler.start();
+        
         try {
             scheduler.join();
         } catch (InterruptedException e) {
@@ -293,9 +312,23 @@ public class JobTracker {
         job.getConfig().setMapperAmount(fileBlocks.size());
         for(FileBlock fileBlock : fileBlocks){
             MapperTask task = new MapperTask(job.getId(), fileBlock, job.getConfig().getReducerAmount());
+            
+            task.setNetreducer(job.getConfig().isNetreducer());
+            
+            //ibrahim
+            task.setCombiner(job.getConfig().getCombiner());
             TaskTrackerInfo taskTracker = getMapperTaskTracker();
+//            int count=0;
+//            while(count<5&&taskTracker == null)
+//            {
+//            	LOG.info("taskTracker is null: retrying in 2 seconds");
+//            	Thread.sleep(100);
+//            	taskTracker = getMapperTaskTracker();
+//            	count++;
+//            }
             if(taskTracker == null){
                 job.setJobStatus(JobStatus.FAILED);
+                LOG.info("generateMapperTasks: Set job status to failed");
                 throw new RemoteException("No available task tracker now");
             }
             task.setTaskTrackerName(taskTracker);
@@ -310,9 +343,13 @@ public class JobTracker {
         int reducerAmount = job.getConfig().getReducerAmount();
         for(int i = 0; i < reducerAmount; i++){
             ReducerTask task = new ReducerTask(job.getId());
+            
+            task.setNetreducer(job.getConfig().isNetreducer());
+            
             TaskTrackerInfo taskTracker = getReducerTaskTracker();
             if(taskTracker == null){
                 job.setJobStatus(JobStatus.FAILED);
+                LOG.info("generateReducerTasks: Set job status to failed");
                 throw new RemoteException("No available task tracker now");
             }
             task.setTaskTrackerName(taskTracker);
@@ -323,6 +360,8 @@ public class JobTracker {
             task.setReplicas(job.getConfig().getOutputFileReplica());
             task.setPartitionIndex(i);
             task.setMRClassName(job.getConfig().getClassName());
+            task.setReducerAmount(reducerAmount);
+            task.setJobStartTime(job.startTime);
             job.addReducerTask(task);
         }
     }
@@ -337,15 +376,22 @@ public class JobTracker {
 
     private TaskTrackerInfo getMapperTaskTracker(){
         TaskTrackerInfo minTaskTracker = null;
+        LOG.info("taskTackers.values() = "+ taskTackers.values().size());
         Iterator<TaskTrackerInfo> iterator = taskTackers.values().iterator();
         while(iterator.hasNext()){
             TaskTrackerInfo taskTracker = iterator.next();
-            if(taskTracker.isValid() &&
-               (minTaskTracker == null || taskTracker.getMapperTaskNumber() < minTaskTracker.getMapperTaskNumber())){
+            LOG.info("Checking taskTracker: host = "+taskTracker.getHost()+", "+taskTracker.getMapperTaskNumber()+", taskTracker.isValid()="+taskTracker.isValid());
+            if(taskTracker.isValid() && (minTaskTracker == null || taskTracker.getMapperTaskNumber() < minTaskTracker.getMapperTaskNumber())){
                 minTaskTracker = taskTracker;
             }
         }
+        if(minTaskTracker != null)
+        	LOG.info("minTaskTracker is "+minTaskTracker.getHost());
+        else
+        	LOG.info("minTaskTracker is NULL!");
+        
         if(minTaskTracker != null){
+        	LOG.info("increase mapper number: map allocated at "+minTaskTracker.getHost());
             minTaskTracker.increaseMapperTaskNumber();
         }
         return minTaskTracker;
@@ -401,26 +447,41 @@ public class JobTracker {
         if(taskTracker != null){
             List<MapperTask> pendingMapperTasks = taskTracker.getPendingMapperTask();
             List<ReducerTask> pendingReducerTasks = taskTracker.getPendingReducerTask();
+            LOG.info("#pending map tasks at "+taskTrackerName+" = "+pendingMapperTasks.size());
+            LOG.info("#pending reduce tasks at "+taskTrackerName+" = "+pendingReducerTasks.size());
             TaskTrackerInfo newMapperTaskTracker = getMapperTaskTracker();
             TaskTrackerInfo newReducerTaskTracker = getReducerTaskTracker();
-
-            if(newMapperTaskTracker != null && newReducerTaskTracker != null){
-                for(MapperTask mapperTask : pendingMapperTasks){
-                    migrateTaskTracker(mapperTask, newMapperTaskTracker);
-                    mapperTasksQueue.offer(mapperTask);
-                }
-                for(ReducerTask reducerTask : pendingReducerTasks){
-                    migrateTaskTracker(reducerTask, newReducerTaskTracker);
-                }
-                List<MapperTask> finishedMapperTasks = getFinishedMapper(pendingReducerTasks);
-                for(MapperTask mapperTask : finishedMapperTasks){
-                    sendReducerTask(newReducerTaskTracker.toString(), mapperTask, pendingReducerTasks);
-                }
-                return;
+            //ibrahim
+            if(pendingMapperTasks.size()!=0||pendingReducerTasks.size()!=0){
+	        	if(newMapperTaskTracker != null && newReducerTaskTracker != null)
+	            {
+	            	LOG.info("Trying to migrate pending map tasks to other tracker: "+newMapperTaskTracker.getHost());
+	                for(MapperTask mapperTask : pendingMapperTasks){
+	                    migrateTaskTracker(mapperTask, newMapperTaskTracker);
+	                    mapperTasksQueue.offer(mapperTask);
+	                }
+	                LOG.info("Trying to migrate pending reduce tasks to other tracker: "+newReducerTaskTracker.getHost());
+	                for(ReducerTask reducerTask : pendingReducerTasks){
+	                    migrateTaskTracker(reducerTask, newReducerTaskTracker);
+	                }
+	                List<MapperTask> finishedMapperTasks = getFinishedMapper(pendingReducerTasks);
+	                for(MapperTask mapperTask : finishedMapperTasks){
+	                    sendReducerTask(newReducerTaskTracker.toString(), mapperTask, pendingReducerTasks);
+	                }
+	                return;
+	            }
+//            }
+//            //ibrahim
+//            if(pendingMapperTasks.size()>0 && pendingReducerTasks.size()>0)
+//            {
+	            LOG.error("no available task tracker now");
+	            for(Task task : taskTracker.getPendingTasks()){
+	            	LOG.error("no available task tracker now");
+	                task.setStatus(TaskStatus.FAILED);
+	            }
             }
-            LOG.error("no available task tracker now");
-            for(Task task : taskTracker.getPendingTasks()){
-                task.setStatus(TaskStatus.FAILED);
+            else{
+            	LOG.info("Nothing to migrate: "+newMapperTaskTracker.getHost());
             }
         }
     }

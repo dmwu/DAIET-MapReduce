@@ -27,19 +27,30 @@ public class JobTrackerScheduler implements Runnable{
         this.jobTracker = jobTracker;
         if(poolSize <= 0){
             this.pool = Executors.newFixedThreadPool(Constants.DEFAULT_SCHEDULED_THREAD_POOL_SIZE);
+            LOG.info("ThreadPool is created: #def threads = "+Constants.DEFAULT_SCHEDULED_THREAD_POOL_SIZE);
         } else {
+            
+        	//ibrahim: changes to thread pool 
             this.pool = Executors.newFixedThreadPool(poolSize);
+//        	this.pool = Executors.newCachedThreadPool();
+            
+            LOG.info("ThreadPool is created: #threads = "+poolSize);
         }
+        
     }
 
-    @Override
+    
     public void run() {
         while(true){
             try {
-                MapperTask task = jobTracker.takeMapperTask();
+            	LOG.info("Trying to pull a MapperTask");
+            	MapperTask task = jobTracker.takeMapperTask();
+                LOG.info("Pulling a MapperTask is done, now changing status to pending");
                 task.setStatus(TaskStatus.PENDING);
                 JobTrackerDispatcher dispatcher = new JobTrackerDispatcher(jobTracker, task);
+                LOG.info("Try to dispatch the MapperTask");
                 pool.execute(dispatcher);
+                LOG.info("MapperTask dispatching is done");
             } catch (InterruptedException e) {
                 LOG.error("Job scheduler is interrupted!", e);
                 System.exit(-1);

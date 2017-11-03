@@ -1,6 +1,8 @@
 package edu.cmu.courses.simplemr;
 
 import edu.cmu.courses.simplemr.mapreduce.Pair;
+import netreducer.NRUtils;
+
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -69,7 +71,11 @@ public class Utils {
             throw new IllegalArgumentException(fieldName + " can't be negative or zero");
         }
     }
-
+    public static void validateNonNegativeInteger(int number, String fieldName){
+        if(number < 0){
+            throw new IllegalArgumentException(fieldName + " can't be negative or zero");
+        }
+    }
     public static Pair<String, String> splitLine(String line){
         String[] words = line.split(Constants.MAPREDUCE_DELIMITER_REGEX, 2);
         if(words.length < 2){
@@ -83,7 +89,6 @@ public class Utils {
             throws IOException{
         List<BufferedReader> readers = new ArrayList<BufferedReader>();
         Comparator<Pair<String, BufferedReader>> comparator = new Comparator<Pair<String, BufferedReader>>() {
-            @Override
             public int compare(Pair<String, BufferedReader> o1, Pair<String, BufferedReader> o2) {
                 return o1.getKey().compareTo(o2.getKey());
             }
@@ -114,6 +119,34 @@ public class Utils {
                     readers.remove(entry.getValue());
                 }
             }
+        }
+        writer.flush();
+        writer.close();
+    }
+    
+    public static void mergeFilesAndSort(List<String> files, String outputFile)
+            throws Exception{
+    	
+    	Comparator<Pair<String, Integer>> comparator = new Comparator<Pair<String, Integer>>() {
+            public int compare(Pair<String, Integer> o1, Pair<String, Integer> o2) {
+                return o1.getKey().compareTo(o2.getKey());
+            }
+        };
+    	
+    	PriorityQueue<Pair<String, Integer>> priorityQueue = new PriorityQueue<Pair<String, Integer>>(11,comparator);
+    	
+        for(int i = 0; i < files.size(); i++){
+        	NRUtils.readFile(files.get(i), priorityQueue);
+        }
+        
+        BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile));
+        
+        while(priorityQueue.size() > 0){
+            Pair<String, Integer> entry = priorityQueue.poll();
+            
+            writer.write(entry.getKey() + Constants.MAPREDUCE_DELIMITER + entry.getValue());
+            writer.newLine();
+            
         }
         writer.flush();
         writer.close();

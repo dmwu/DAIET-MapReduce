@@ -28,7 +28,6 @@ public class DFSMasterGC implements Runnable{
         this.chunk = chunk;
     }
 
-    @Override
     public void run() {
         DFSNode[] nodes = chunk.getNodes();
         try {

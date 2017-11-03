@@ -27,7 +27,6 @@ public class JobClientServiceImpl extends UnicastRemoteObject implements JobClie
     }
 
 
-    @Override
     public Pair<String, Integer> getFileServerInfo() throws RemoteException {
         try {
             String host = Utils.getHost();
@@ -37,12 +36,12 @@ public class JobClientServiceImpl extends UnicastRemoteObject implements JobClie
         }
     }
 
-    @Override
+    
     public void submitJob(JobConfig jobConfig) throws RemoteException {
         jobTracker.submitJob(jobConfig);
     }
 
-    @Override
+    
     public String describeJobs() throws RemoteException{
         return jobTracker.describeJobs();
     }

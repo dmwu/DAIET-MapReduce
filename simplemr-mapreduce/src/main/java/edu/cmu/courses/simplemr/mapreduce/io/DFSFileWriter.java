@@ -20,8 +20,8 @@ public class DFSFileWriter extends FileWriter {
     private DFSClient dfsClient;
     private DFSFile dfsFile;
     private int currentLineCount;
-    private StringBuffer lineBuffer;
-
+//    private StringBuffer lineBuffer;
+    private StringBuilder lineBuffer;
     public DFSFileWriter(String registryHost, int registryPort,
                          String file, int lineCount, int replicas) {
         super(file);
@@ -30,7 +30,7 @@ public class DFSFileWriter extends FileWriter {
         this.dfsClient = new DFSClient(registryHost, registryPort);
         this.dfsFile = null;
         this.currentLineCount = 0;
-        this.lineBuffer = new StringBuffer();
+        this.lineBuffer = new StringBuilder();
     }
 
     @Override

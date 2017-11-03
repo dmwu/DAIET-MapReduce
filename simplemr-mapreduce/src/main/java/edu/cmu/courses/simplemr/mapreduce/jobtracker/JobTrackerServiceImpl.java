@@ -30,32 +30,32 @@ public class JobTrackerServiceImpl extends UnicastRemoteObject implements JobTra
         this.jobTracker = jobTracker;
     }
 
-    @Override
+    
     public void heartbeat(TaskTrackerInfo taskTrackerInfo) throws RemoteException {
         jobTracker.updateTaskTracker(taskTrackerInfo);
     }
 
-    @Override
+    
     public void mapperTaskSucceed(MapperTask task) throws RemoteException {
         jobTracker.mapperTaskSucceed(task);
     }
 
-    @Override
+    
     public void reducerTaskSucceed(ReducerTask task) throws RemoteException {
         jobTracker.reducerTaskSucceed(task);
     }
 
-    @Override
+    
     public void mapperTaskFailed(MapperTask task) throws RemoteException {
         jobTracker.mapperTaskFailed(task);
     }
 
-    @Override
+    
     public void reducerTaskFailed(ReducerTask task) throws RemoteException {
         jobTracker.reducerTaskFailed(task);
     }
 
-    @Override
+    
     public void reducerTaskFailedOnMapperTask(ReducerTask reducerTask, MapperTask mapperTask) throws RemoteException {
         jobTracker.reducerTaskFailedOnMapper(reducerTask, mapperTask);
     }

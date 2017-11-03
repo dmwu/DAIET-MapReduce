@@ -6,11 +6,18 @@ import edu.cmu.courses.simplemr.dfs.DFSClient;
 import edu.cmu.courses.simplemr.mapreduce.MapReduce;
 import edu.cmu.courses.simplemr.mapreduce.OutputCollector;
 import edu.cmu.courses.simplemr.mapreduce.Pair;
-import edu.cmu.courses.simplemr.mapreduce.io.DFSFileWriter;
 import edu.cmu.courses.simplemr.mapreduce.task.MapperTask;
 import edu.cmu.courses.simplemr.mapreduce.task.ReducerTask;
 import edu.cmu.courses.simplemr.mapreduce.task.Task;
+import netreducer.AsyncHttpRequest;
+import netreducer.NRUtils;
+
 import org.apache.commons.io.IOUtils;
+import org.apache.http.Header;
+import org.apache.http.HttpResponse;
+import org.apache.http.message.BasicHeader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.util.*;
@@ -30,12 +37,13 @@ import java.util.concurrent.ConcurrentHashMap;
 public class TaskTrackerReducerWorker extends TaskTrackerWorker {
 
     public static final String MAPPER_RESULTS_DIR = "mappers";
+    private static Logger LOG = LoggerFactory.getLogger(TaskTrackerReducerWorker.class);
 
     private PriorityQueue<MapperTask> mapperTasks;
     private ConcurrentHashMap<Integer, String> mapperFiles;
     private ConcurrentHashMap<Integer, Integer> mapperLocks;
     private Boolean finished;
-
+    
     public TaskTrackerReducerWorker(Task task, TaskTracker taskTracker) {
         super(task, taskTracker);
         this.mapperTasks = new PriorityQueue<MapperTask>();
@@ -63,8 +71,9 @@ public class TaskTrackerReducerWorker extends TaskTrackerWorker {
         this.task.setAttemptCount(task.getAttemptCount());
     }
 
-    @Override
+    
     public void run() {
+    	
         if(mapperFiles.size() == ((ReducerTask)task).getMapperAmount()){
             return;
         }
@@ -73,33 +82,57 @@ public class TaskTrackerReducerWorker extends TaskTrackerWorker {
             return;
         }
         try {
-            copyMapperResult(mapperTask);
-        } catch (IOException e) {
+        	
+        	LOG.info("REDUCER ID:"+ ((ReducerTask)task).getTaskId());
+        	if (task.isNetreducer()){
+        		if(!copyMapperResultWithNR(mapperTask, ((ReducerTask)task).getTaskId())){
+        			
+        			taskTracker.reducerFailedOnMapper(((ReducerTask)task), mapperTask);
+                    LOG.error("Reducer "+task.getTaskId()+" failed while getting the output of mapper: "+mapperTask.getTaskId());
+                    return;
+        		}
+        	} else
+        		copyMapperResult(mapperTask);
+        	
+        } catch (Exception e) {
             taskTracker.reducerFailedOnMapper(((ReducerTask)task), mapperTask);
+            LOG.error("Reducer failed: ", e);
             return;
         }
 
         synchronized (finished){
             try{
                 if(mapperFiles.size() == ((ReducerTask)task).getMapperAmount() && (!finished)){
+                	long start = System.currentTimeMillis();
                     List<String> files = new ArrayList<String>(mapperFiles.values());
                     String unreducedFile = getAbsolutePath(getReducerResultFilePath("unreduced"));
                     String reducedFile = getAbsolutePath(getReducerResultFilePath(null));
 
-                    Utils.mergeSortedFiles(files, unreducedFile);
+                    if (task.isNetreducer())
+                    	Utils.mergeFilesAndSort(files, unreducedFile);
+                    else 
+                    	Utils.mergeSortedFiles(files,unreducedFile);
 
                     OutputCollector collector = new OutputCollector();
                     MapReduce mr = newMRInstance();
+                    long start2 = System.currentTimeMillis();
                     reduce(unreducedFile, mr, collector);
-
+                    LOG.info("## REDUCERTIME #"+((ReducerTask) task).getTaskId()+":"+(System.currentTimeMillis()-start));
+                    
                     saveResultToLocal(reducedFile, collector);
                     saveResultToDFS(reducedFile);
 
                     taskTracker.reducerSucceed(((ReducerTask)task));
                     finished = true;
+                    //ibrahim
+                    LOG.info("Job #"+((ReducerTask)task).getJobId()+": Reducer finished after (ms): "+(System.currentTimeMillis()- ((ReducerTask)task).getJobStartTime())+", startTime = "+((ReducerTask)task).getJobStartTime()
+                    		+",task id = "+((ReducerTask)task).getTaskId());
+                    LOG.info("Job #"+((ReducerTask)task).getJobId()+": task id = "+((ReducerTask)task).getTaskId()+", #reducers = "+((ReducerTask)task).getReducerAmount());
+                    LOG.info("Reducer #"+((ReducerTask) task).getTaskId()+": run took (ms): "+(System.currentTimeMillis()-start));
                 }
             } catch (Exception e){
                 taskTracker.reducerFailed(((ReducerTask)task));
+                LOG.error("Reducer failed: ", e);
             }
         }
     }
@@ -142,8 +175,7 @@ public class TaskTrackerReducerWorker extends TaskTrackerWorker {
         return ((ReducerTask)task).getOutputFile() + "_" + ((ReducerTask)task).getPartitionIndex();
     }
 
-    private void copyMapperResult(MapperTask mapperTask)
-            throws IOException {
+    private void copyMapperResult(MapperTask mapperTask) throws IOException {
         synchronized (getMapperLock(mapperTask)){
             if(mapperFiles.contains(mapperTask.getTaskId())){
                 return;
@@ -157,6 +189,53 @@ public class TaskTrackerReducerWorker extends TaskTrackerWorker {
             in.close();
             out.close();
             mapperFiles.put(mapperTask.getTaskId(), outputFile);
+        }
+    }
+    
+    private boolean copyMapperResultWithNR(MapperTask mapperTask, int treeId) throws Exception {
+        synchronized (getMapperLock(mapperTask)){
+        	
+            if(mapperFiles.contains(mapperTask.getTaskId())){
+            	LOG.warn("Output of Mapper "+mapperTask.getTaskId()+" already received.");
+                return true;
+            }
+            
+            String host = mapperTask.getFileServerHost();
+            int port = mapperTask.getFileServerPort();
+            String filePath = getMapperResultURI(mapperTask);
+            String outputFile = getAbsolutePath(getMapperResultFilePath(mapperTask));
+            
+            int portNR = 10000+mapperTask.getTaskId()+(100*treeId);
+            
+            AsyncHttpRequest ahr = new AsyncHttpRequest();
+            try {
+                
+            	Header[] headers = new Header[2];
+            	headers[0] = new BasicHeader("NRport", String.valueOf(portNR));
+            	headers[1] = new BasicHeader("NRtreeId", String.valueOf(treeId));
+            	
+            	LOG.info("Request: "+"http://" + host + ":" + port + "/" + filePath);
+                // Execute request
+            	ahr.asyncHttpGet("http://" + host + ":" + port + "/" + filePath,headers);
+                
+                if (!NRUtils.receiveFile(outputFile, treeId, "0.0.0.0", portNR))
+                	return false;
+                
+                mapperFiles.put(mapperTask.getTaskId(), outputFile);
+                
+                HttpResponse response = ahr.getResponse();
+                
+                LOG.info("Response: "+ahr.getRequest().getRequestLine() + "->" + response.getStatusLine());
+
+                ahr.close();
+                
+                return true;
+                
+            } catch (Exception e) {
+                LOG.error("HTTP client failed: ", e);
+                
+                throw e;
+            } 
         }
     }
 
@@ -184,6 +263,7 @@ public class TaskTrackerReducerWorker extends TaskTrackerWorker {
             values.add(entry.getValue());
             prevKey = key;
         }
+        reader.close();
     }
 
     private void saveResultToLocal(String localFileName, OutputCollector collector)

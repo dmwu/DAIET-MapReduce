@@ -25,7 +25,9 @@ public class JobConfig implements Serializable {
     private int mapperAmount = 0;
     private int reducerAmount = 0;
     private int maxAttemptCount = DEFAULT_ATTEMPT_COUNT;
-
+    private int combiner = DFSConstants.DEFAULT_COMBINER;
+    private boolean netreducer = false;
+    
     public void validate(){
         Utils.validateString(jobName, "The name of job");
         Utils.validateString(className, "The name of class implemented MapReduce interface");
@@ -36,6 +38,8 @@ public class JobConfig implements Serializable {
         Utils.validatePositiveInteger(mapperAmount, "The amount of mappers");
         Utils.validatePositiveInteger(reducerAmount, "The amount of reducers");
         Utils.validatePositiveInteger(maxAttemptCount, "The max attempt count for failed job");
+        Utils.validatePositiveInteger(maxAttemptCount, "The max attempt count for failed job");
+        Utils.validateNonNegativeInteger(combiner, "the combiner to use: 0 (none), 1 (sum), 2 (max), 3 (min)");
     }
 
     public int getMaxAttemptCount(){
@@ -45,7 +49,18 @@ public class JobConfig implements Serializable {
     public void setMaxAttemptCount(int maxAttemptCount){
         this.maxAttemptCount = maxAttemptCount;
     }
-
+    public void setCombiner(int combiner){
+        this.combiner = combiner;
+    }
+    public int getCombiner(){
+        return combiner;
+    }
+    public void setNetreducer(boolean netreducer){
+        this.netreducer = netreducer;
+    }
+    public boolean isNetreducer(){
+        return netreducer;
+    }
     public String getJobName() {
         return jobName;
     }

@@ -7,6 +7,9 @@ import java.io.File;
 import java.io.Serializable;
 import java.util.concurrent.atomic.AtomicInteger;
 
+//import org.slf4j.Logger;
+//import org.slf4j.LoggerFactory;
+
 /**
  * The Task superclass. The job tracker deliver a task to the task
  * tracker to let task tracker do the task.
@@ -15,6 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Fangyu Gao(fangyug)
  */
 public abstract class Task implements Serializable, Comparable<Task>{
+//    private static Logger LOG = LoggerFactory.getLogger(Task.class);
 
     private static AtomicInteger maxId = new AtomicInteger();
     public static final String TASK_FOLDER_PREFIX = "simplemr_task_";
@@ -27,20 +31,31 @@ public abstract class Task implements Serializable, Comparable<Task>{
     protected String taskTrackerName;
     protected String mrClassName;
     protected String outputDir;
+    private boolean netreducer;
 
-    public Task(int jobId, TaskType type){
+    public boolean isNetreducer() {
+		return netreducer;
+	}
+
+
+	public void setNetreducer(boolean netreducer) {
+		this.netreducer = netreducer;
+	}
+
+	public Task(int jobId, TaskType type){
         setTaskId(maxId.getAndIncrement());
+//        LOG.info("Set task id: "+taskId+", taskTrackerName = "+taskTrackerName+", jobId = "+jobId);
         setJobId(jobId);
         setType(type);
         attemptCount = 0;
     }
 
-    @Override
+    
     public int compareTo(Task task) {
         return taskId - task.taskId;
     }
 
-    @Override
+    
     public boolean equals(Object task){
         if(task instanceof Task){
             return taskId == ((Task) task).getTaskId();

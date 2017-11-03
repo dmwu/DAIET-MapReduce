@@ -2,5 +2,5 @@
 
 base=`dirname $0`/..
 export CLASSPATH=$base/lib/*:$base/jars/dfs-slave-1.0.jar:$CLASSPATH
-java edu.cmu.courses.simplemr.dfs.slave.DFSSlave $@
+java -Xmx5G edu.cmu.courses.simplemr.dfs.slave.DFSSlave $@
 

@@ -83,7 +83,11 @@ public class TaskTracker {
     public void start()
             throws Exception {
         taskTrackerInfo = new TaskTrackerInfo(Utils.getHost(), registryPort, fileServerPort, invalidPeriod);
+        
+        //ibrahim: changes to thread pool 
         threadPool = Executors.newFixedThreadPool(threadPoolSize);
+//        threadPool = Executors.newCachedThreadPool();
+        
         heartbeatPool = Executors.newScheduledThreadPool(Constants.DEFAULT_SCHEDULED_THREAD_POOL_SIZE);
         bindService();
         heartbeatPool.scheduleAtFixedRate(new TaskTrackerHeartbeat(this), 0, heartbeatPeriod, TimeUnit.MILLISECONDS);
@@ -101,6 +105,8 @@ public class TaskTracker {
 
     public void runReducerTask(MapperTask mapperTask, List<ReducerTask> reducerTasks){
         for(ReducerTask reducerTask : reducerTasks){
+        	//ibrahim
+        	reducerTask.setReducerAmount(reducerTasks.size());
             runReducerTask(mapperTask, reducerTask);
         }
     }

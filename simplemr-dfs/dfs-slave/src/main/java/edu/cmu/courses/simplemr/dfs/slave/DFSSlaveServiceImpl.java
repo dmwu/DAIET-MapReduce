@@ -26,7 +26,6 @@ public class DFSSlaveServiceImpl extends UnicastRemoteObject implements DFSSlave
         this.slave = slave;
     }
 
-    @Override
     public byte[] read(long chunkId, long offset, int size) throws RemoteException {
         try {
             return slave.read(chunkId, offset, size);
@@ -35,7 +34,6 @@ public class DFSSlaveServiceImpl extends UnicastRemoteObject implements DFSSlave
         }
     }
 
-    @Override
     public boolean write(long chunkId, long offset, int size, byte[] data) throws RemoteException {
         try {
             slave.write(chunkId, offset, size, data);
@@ -45,13 +43,11 @@ public class DFSSlaveServiceImpl extends UnicastRemoteObject implements DFSSlave
         }
     }
 
-    @Override
     public void delete(long chunkId) throws RemoteException {
         LOG.debug("delete chunk " + chunkId);
         slave.delete(chunkId);
     }
 
-    @Override
     public long[] linesOffset(long chunkId) throws RemoteException {
         try {
             return slave.linesOffset(chunkId);

@@ -43,7 +43,7 @@ public class FileServer {
         Server server = new Server(port);
         ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
         context.setContextPath("/");
-        context.addServlet(new ServletHolder(new FileHandler(fileDir)), "/*");
+        context.addServlet(new ServletHolder(new FileHandlerNR(fileDir)), "/*");
         server.setHandler(context);
         try{
             server.start();
