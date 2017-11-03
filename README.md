@@ -6,13 +6,18 @@ To improve performance, we present DAIET, a system that performs data aggregatio
 We describe a preliminary prototype of DAIET using P4 to perform in-network aggregation for MapReduce-based applications.
 Experimental results show that our approach achieves around 88\% data reduction ratio and a similar decrease in the reducer running time, without requiring severe application-level modifications.
 
+If you use DAIET in your research, please cite our paper:
+ ```
+@inproceedings{sapio2017daiet,
+ title={In-Network Computation is a Dumb Idea Whose Time Has Come},
+ author={Amedeo Sapio, Ibrahim Abdelaziz, Abdulla Aldilaijan, Marco Canini, and Panos Kalnis},
+ booktitle={Proceedings of the 16th ACM Workshop on Hot Topics in Networks (HotNets)},
+ year={2017},
+ organization={ACM}
+}
+ ```
 ### Resources
 * DAIET project website: [sands.kaust.edu.sa/daiet/](http://sands.kaust.edu.sa/daiet/)
-* HotNets 2017 paper: 
-  
-  *Amedeo Sapio, Ibrahim Abdelaziz, Abdulla Aldilaijan, Marco Canini, and Panos Kalnis <br>
-  **In-Network Computation is a ~~Dumb~~ Idea Whose Time Has Come** <br>
-  In Proceedings of the 16th ACM Workshop on Hot Topics in Networks. ACM, 2017.*
 
 ### Changes
 The main changes from the original [simpleMR](https://github.com/wangchangli/simplemr) are:
